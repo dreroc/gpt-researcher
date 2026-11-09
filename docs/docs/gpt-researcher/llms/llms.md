@@ -3,14 +3,14 @@
 As described in the [introduction](/docs/gpt-researcher/gptr/config), the default LLM and embedding is OpenAI due to its superior performance and speed. 
 With that said, GPT Researcher supports various open/closed source LLMs and embeddings, and you can easily switch between them by updating the `SMART_LLM`, `FAST_LLM` and `EMBEDDING` env variables. You might also need to include the provider API key and corresponding configuration params.
 
-Current supported LLMs are `openai`, `anthropic`, `azure_openai`, `cohere`, `google_vertexai`, `google_genai`, `fireworks`, `ollama`, `together`, `mistralai`, `huggingface`, `groq`, `bedrock` and `litellm`.
+Current supported LLMs are `openai`, `anthropic`, `azure_openai`, `cohere`, `google_vertexai`, `google_genai`, `fireworks`, `ollama`, `together`, `mistralai`, `huggingface`, `groq`, `bedrock`, `litellm` and `minimax`.
 
 Current supported embeddings are `openai`, `azure_openai`, `cohere`, `google_vertexai`, `google_genai`, `fireworks`, `ollama`, `together`, `mistralai`, `huggingface`, `nomic` ,`voyageai` and `bedrock`.
 
 To learn more about support customization options see [here](/docs/gpt-researcher/gptr/config).
 
 **Please note**: GPT Researcher is optimized and heavily tested on GPT models. Some other models might run into context limit errors, and unexpected responses.
-Please provide any feedback in our [Discord community](https://discord.gg/DUmbTebB) channel, so we can better improve the experience and performance.
+Please provide any feedback in our [Discord community](https://discord.gg/QgZXvJAccX) channel, so we can better improve the experience and performance.
 
 Below you can find examples for how to configure the various supported LLMs.
 
@@ -351,6 +351,19 @@ OPENROUTER_LIMIT_RPS=1  # Ratelimit request per secound
 EMBEDDING=google_genai:models/text-embedding-004 # openrouter doesn't support embedding models, use google instead its free
 GOOGLE_API_KEY=[Your *google gemini* key]
 ```
+## Forge
+
+[Forge](https://github.com/TensorBlock/forge) is an open-source LLM router that provides unified access to 40+ AI providers through a single API.
+
+```env
+FORGE_API_KEY=[Your Key]
+FAST_LLM=forge:OpenAI/gpt-4o-mini
+SMART_LLM=forge:OpenAI/gpt-4o
+STRATEGIC_LLM=forge:OpenAI/gpt-4o
+```
+
+Model names use the `Provider/model-name` format (e.g., `OpenAI/gpt-4o`, `Anthropic/claude-sonnet-4-5`).
+
 ## AI/ML API
 #### AI/ML API provides 300+ AI models including Deepseek, Gemini, ChatGPT. The models run at enterprise-grade rate limits and uptimes.
 You can check provider docs [_here_](https://docs.aimlapi.com/?utm_source=gptr&utm_medium=github&utm_campaign=integration)
@@ -365,6 +378,45 @@ SMART_LLM="aimlapi:openai/o4-mini-2025-04-16"
 STRATEGIC_LLM="aimlapi:x-ai/grok-3-mini-beta"
 EMBEDDING="aimlapi:text-embedding-3-small"
 ```
+
+## MiniMax
+
+[MiniMax](https://www.minimaxi.com) offers powerful large language models with an OpenAI-compatible API. The latest MiniMax-M3 features a 512K context window, up to 128K output, and image input support.
+
+Sign up at [minimaxi.com](https://www.minimaxi.com) to get an API key, then set the following environment variables:
+
+```env
+MINIMAX_API_KEY=[Your Key]
+FAST_LLM=minimax:MiniMax-M3
+SMART_LLM=minimax:MiniMax-M3
+STRATEGIC_LLM=minimax:MiniMax-M3
+
+EMBEDDING=minimax:embo-01
+```
+
+Available models:
+- `MiniMax-M3` — flagship model with 512K context, 128K max output, image input support (default)
+- `MiniMax-M2.7` — previous-generation model
+- `MiniMax-M2.7-highspeed` — previous-generation low-latency variant
+
+## Avian
+
+[Avian](https://avian.io) provides an OpenAI-compatible API with access to cost-effective frontier models including DeepSeek-V3.2, Kimi-K2.5, GLM-5, and MiniMax-M2.5.
+
+Sign up at [avian.io](https://avian.io) to get an API key, then set the following environment variables:
+
+```env
+AVIAN_API_KEY=[Your Key]
+FAST_LLM=avian:deepseek/deepseek-v3.2
+SMART_LLM=avian:moonshotai/kimi-k2.5
+STRATEGIC_LLM=avian:z-ai/glm-5
+```
+
+Available models:
+- `deepseek/deepseek-v3.2` — 164K context, $0.26/$0.38 per 1M tokens
+- `moonshotai/kimi-k2.5` — 131K context, $0.45/$2.20 per 1M tokens
+- `z-ai/glm-5` — 131K context, $0.30/$2.55 per 1M tokens
+- `minimax/minimax-m2.5` — 1M context, $0.30/$1.10 per 1M tokens
 
 ## vLLM
 ```env

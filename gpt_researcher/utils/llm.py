@@ -1,21 +1,39 @@
-# libraries
+"""LLM utilities for GPT Researcher.
+
+This module provides utility functions for interacting with various
+LLM providers through a unified interface.
+"""
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
+import asyncio
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
-from gpt_researcher.llm_provider.generic.base import NO_SUPPORT_TEMPERATURE_MODELS, SUPPORT_REASONING_EFFORT_MODELS, ReasoningEfforts
+from gpt_researcher.llm_provider.generic.base import (
+    NO_SUPPORT_TEMPERATURE_MODELS,
+    SUPPORT_REASONING_EFFORT_MODELS,
+    ReasoningEfforts,
+)
 
 from ..prompts import PromptFamily
 from .costs import estimate_llm_cost
 from .validators import Subtopics
-import os
 
 
-def get_llm(llm_provider, **kwargs):
+def get_llm(llm_provider: str, **kwargs):
+    """Get an LLM provider instance.
+
+    Args:
+        llm_provider: The name of the LLM provider (e.g., 'openai', 'anthropic').
+        **kwargs: Additional keyword arguments passed to the provider.
+
+    Returns:
+        A GenericLLMProvider instance configured for the specified provider.
+    """
     from gpt_researcher.llm_provider import GenericLLMProvider
     return GenericLLMProvider.from_provider(llm_provider, **kwargs)
 
@@ -80,10 +98,32 @@ async def create_chat_completion(
     provider = get_llm(llm_provider, **provider_kwargs)
     response = ""
     # create response
-    for _ in range(10):  # maximum of 10 attempts
-        response = await provider.get_chat_response(
-            messages, stream, websocket, **kwargs
-        )
+    max_attempts = 1 if (stream and websocket is not None) else 10
+    last_exception: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = await provider.get_chat_response(
+                messages, stream, websocket, **kwargs
+            )
+        except Exception as exc:
+            last_exception = exc
+            logging.getLogger(__name__).warning(
+                f"LLM request failed (attempt {attempt}/{max_attempts}): {exc}"
+            )
+            if attempt < max_attempts:
+                await asyncio.sleep(min(2 ** (attempt - 1), 8))
+                continue
+            break
+
+        if not response:
+            last_exception = RuntimeError("Empty response from LLM provider")
+            logging.getLogger(__name__).warning(
+                f"LLM returned empty response (attempt {attempt}/{max_attempts})"
+            )
+            if attempt < max_attempts:
+                await asyncio.sleep(min(2 ** (attempt - 1), 8))
+                continue
+            break
 
         if cost_callback:
             llm_costs = estimate_llm_cost(str(messages), response)
@@ -92,7 +132,7 @@ async def create_chat_completion(
         return response
 
     logging.error(f"Failed to get response from {llm_provider} API")
-    raise RuntimeError(f"Failed to get response from {llm_provider} API")
+    raise RuntimeError(f"Failed to get response from {llm_provider} API") from last_exception
 
 
 async def construct_subtopics(

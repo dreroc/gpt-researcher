@@ -1,23 +1,29 @@
-import asyncio
-from colorama import Fore, init
+"""Web scraper module for GPT Researcher.
 
-import requests
-import subprocess
-import sys
+This module provides the Scraper class that extracts content from URLs
+using various scraping backends (BeautifulSoup, PyMuPDF, Browser, etc.).
+"""
+
+import asyncio
 import importlib
 import logging
+import subprocess
+import sys
+
+import requests
+from colorama import Fore, init
 
 from gpt_researcher.utils.workers import WorkerPool
 
 from . import (
     ArxivScraper,
     BeautifulSoupScraper,
-    PyMuPDFScraper,
-    WebBaseLoaderScraper,
     BrowserScraper,
-    NoDriverScraper,
-    TavilyExtract,
     FireCrawl,
+    NoDriverScraper,
+    PyMuPDFScraper,
+    TavilyExtract,
+    WebBaseLoaderScraper,
 )
 
 
@@ -30,9 +36,13 @@ class Scraper:
         """
         Initialize the Scraper class.
         Args:
-            urls:
+            urls: List of URLs to scrape (duplicates will be removed)
         """
-        self.urls = urls
+        # Optimization: Remove duplicate URLs to avoid redundant scraping
+        unique_urls = list(dict.fromkeys(urls))  # Preserves order while removing duplicates
+        duplicates_removed = len(urls) - len(unique_urls)
+
+        self.urls = unique_urls
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": user_agent})
         self.scraper = scraper
@@ -42,6 +52,13 @@ class Scraper:
             self._check_pkg(self.scraper)
         self.logger = logging.getLogger(__name__)
         self.worker_pool = worker_pool
+
+        # Log deduplication results if duplicates were found
+        if duplicates_removed > 0:
+            self.logger.info(
+                f"Removed {duplicates_removed} duplicate URL(s). "
+                f"Scraping {len(unique_urls)} unique URLs instead of {len(urls)}."
+            )
 
     async def run(self):
         """
@@ -79,6 +96,7 @@ class Scraper:
                 subprocess.check_call(
                     [sys.executable, "-m", "pip", "install", pkg_inst_name]
                 )
+                importlib.invalidate_caches()
                 print(Fore.GREEN + f"{pkg_inst_name} installed successfully.")
             except subprocess.CalledProcessError:
                 raise ImportError(

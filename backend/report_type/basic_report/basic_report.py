@@ -1,3 +1,5 @@
+import hashlib
+import time
 from fastapi import WebSocket
 from typing import Any
 
@@ -19,6 +21,7 @@ class BasicReport:
         headers=None,
         mcp_configs=None,
         mcp_strategy=None,
+        max_search_results=None,
     ):
         self.query = query
         self.query_domains = query_domains
@@ -30,6 +33,9 @@ class BasicReport:
         self.config_path = config_path
         self.websocket = websocket
         self.headers = headers or {}
+        
+        # Generate a unique research ID for this report
+        self.research_id = self._generate_research_id(query)
 
         # Initialize researcher with optional MCP parameters
         gpt_researcher_params = {
@@ -52,6 +58,16 @@ class BasicReport:
             gpt_researcher_params["mcp_strategy"] = mcp_strategy
 
         self.gpt_researcher = GPTResearcher(**gpt_researcher_params)
+
+        # Override max_search_results_per_query if provided by user
+        if max_search_results is not None:
+            self.gpt_researcher.cfg.max_search_results_per_query = int(max_search_results)
+
+    def _generate_research_id(self, query: str) -> str:
+        """Generate a unique research ID from query and timestamp."""
+        timestamp = str(int(time.time()))
+        query_hash = hashlib.md5(query.encode()).hexdigest()[:8]
+        return f"research_{timestamp}_{query_hash}"
 
     async def run(self):
         await self.gpt_researcher.conduct_research()
